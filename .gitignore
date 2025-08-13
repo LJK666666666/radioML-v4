@@ -42,3 +42,6 @@ output/
 
 # Large notebook files
 visualize_bpsk_denoised_data.ipynb
+
+# other programs
+ULCNN/

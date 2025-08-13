@@ -30,7 +30,9 @@ from models import (
     build_lightweight_hybrid_model, build_hybrid_transition_resnet_model, build_lightweight_transition_model,
     build_comparison_models, build_keras_adaboost_model, build_lightweight_adaboost_model,
     build_fcnn_model, build_deep_fcnn_model, build_lightweight_fcnn_model,
-    build_wide_fcnn_model, build_shallow_fcnn_model, build_custom_fcnn_model, get_callbacks
+    build_wide_fcnn_model, build_shallow_fcnn_model, build_custom_fcnn_model, get_callbacks,
+    # ULCNN models
+    build_mcldnn_model, build_scnn_model, build_mcnet_model, build_pet_model, build_ulcnn_model
 )
 from evaluate import evaluate_by_snr
 
@@ -50,6 +52,19 @@ from model.hybrid_transition_resnet_model import (
 from model.transformer_model import (
     RotaryPositionalEncoding, PhaseBasedPositionalEncoding
 )
+
+# Import ULCNN complex layers for model loading
+try:
+    from model.complexnn import (
+        ComplexConv1D as ULCNNComplexConv1D,
+        ComplexBatchNormalization as ULCNNComplexBatchNormalization,
+        ComplexDense as ULCNNComplexDense,
+        ChannelShuffle, DWConvMobile, ChannelAttention
+    )
+    ULCNN_LAYERS_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: ULCNN complex layers not available: {e}")
+    ULCNN_LAYERS_AVAILABLE = False
 
 
 def set_random_seed(seed=42):
@@ -78,14 +93,17 @@ def get_custom_objects_for_model(model_name):
     complex_models = ['complex_nn', 'hybrid_complex_resnet', 'lightweight_hybrid',
                      'hybrid_transition_resnet', 'lightweight_transition']
 
+    # ULCNN models that need complex layer custom objects
+    ulcnn_complex_models = ['ulcnn', 'mcldnn', 'pet']  # mcnet and scnn use standard layers
+
     # Models that need transformer custom objects
     transformer_models = ['transformer_rope_sequential', 'transformer_rope_phase']
 
     # Models from comparison_models that might need custom objects
     comparison_models = ['high_complex', 'medium_complex', 'low_complex']
 
-    if model_name in complex_models or model_name in comparison_models:
-        return {
+    if model_name in complex_models or model_name in comparison_models or model_name in ulcnn_complex_models:
+        custom_objects = {
             'ComplexConv1D': ComplexConv1D,
             'ComplexBatchNormalization': ComplexBatchNormalization,
             'ComplexDense': ComplexDense,
@@ -108,6 +126,19 @@ def get_custom_objects_for_model(model_name):
             'complex_swish': complex_swish,
             'real_imag_mixed_relu': real_imag_mixed_relu
         }
+        
+        # Add ULCNN-specific layers if available
+        if ULCNN_LAYERS_AVAILABLE and model_name in ulcnn_complex_models:
+            custom_objects.update({
+                'ULCNNComplexConv1D': ULCNNComplexConv1D,
+                'ULCNNComplexBatchNormalization': ULCNNComplexBatchNormalization,
+                'ULCNNComplexDense': ULCNNComplexDense,
+                'ChannelShuffle': ChannelShuffle,
+                'DWConvMobile': DWConvMobile,
+                'ChannelAttention': ChannelAttention
+            })
+        
+        return custom_objects
     elif model_name in transformer_models:
         return {
             'RotaryPositionalEncoding': RotaryPositionalEncoding,
@@ -227,7 +258,9 @@ def get_available_models():
         'hybrid_complex_resnet', 'lightweight_hybrid',
         'hybrid_transition_resnet', 'lightweight_transition',
         'comparison_models', 'adaboost', 'lightweight_adaboost',
-        'fcnn', 'deep_fcnn', 'lightweight_fcnn', 'wide_fcnn', 'shallow_fcnn'
+        'fcnn', 'deep_fcnn', 'lightweight_fcnn', 'wide_fcnn', 'shallow_fcnn',
+        # ULCNN models
+        'mcldnn', 'scnn', 'mcnet', 'pet', 'ulcnn'
     ]
 
 
@@ -271,6 +304,12 @@ def build_model_by_name(model_name, input_shape, num_classes):
         'lightweight_fcnn': build_lightweight_fcnn_model,
         'wide_fcnn': build_wide_fcnn_model,
         'shallow_fcnn': build_shallow_fcnn_model,
+        # ULCNN models
+        'mcldnn': build_mcldnn_model,
+        'scnn': build_scnn_model,
+        'mcnet': build_mcnet_model,
+        'pet': build_pet_model,
+        'ulcnn': build_ulcnn_model,
     }
     
     # Handle AdaBoost models

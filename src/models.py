@@ -10,5 +10,13 @@ from model.hybrid_transition_resnet_model import build_hybrid_transition_resnet_
 from model.adaboost_model import build_keras_adaboost_model, build_adaboost_model, build_lightweight_adaboost_model
 from model.fcnn_model import (build_fcnn_model, build_deep_fcnn_model, build_lightweight_fcnn_model, 
                               build_wide_fcnn_model, build_shallow_fcnn_model, build_custom_fcnn_model)
+
+# Import ULCNN models
+from model.mcldnn_model import build_mcldnn_model
+from model.scnn_model import build_scnn_model
+from model.mcnet_model import build_mcnet_model
+from model.pet_model import build_pet_model_main as build_pet_model
+from model.ulcnn_model import build_ulcnn_model
+
 from model.callbacks import get_callbacks
 from model.detailed_logging_callback import get_detailed_logging_callback
