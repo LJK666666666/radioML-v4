@@ -20,22 +20,23 @@ import tensorflow as tf
 
 # Import project modules
 from explore_dataset import load_radioml_data, explore_dataset, plot_signal_examples
-from preprocess import prepare_data, prepare_data_by_snr
+from preprocess import prepare_data, prepare_data_by_snr, prepare_data_by_snr_stratified
 from train import train_model, plot_training_history, load_adaboost_model
 from models import (
-    build_cnn1d_model, build_cnn2d_model, build_resnet_model, build_complex_nn_model, 
-    build_transformer_model, build_lstm_model, build_advanced_lstm_model, 
-    build_multi_scale_lstm_model, build_lightweight_lstm_model, build_hybrid_complex_resnet_model, 
-    build_lightweight_hybrid_model, build_hybrid_transition_resnet_model, build_lightweight_transition_model, 
-    build_comparison_models, build_keras_adaboost_model, build_lightweight_adaboost_model, 
-    build_fcnn_model, build_deep_fcnn_model, build_lightweight_fcnn_model, 
+    build_cnn1d_model, build_cnn2d_model, build_resnet_model, build_complex_nn_model,
+    build_transformer_model, build_transformer_rope_sequential_model, build_transformer_rope_phase_model,
+    build_lstm_model, build_advanced_lstm_model,
+    build_multi_scale_lstm_model, build_lightweight_lstm_model, build_hybrid_complex_resnet_model,
+    build_lightweight_hybrid_model, build_hybrid_transition_resnet_model, build_lightweight_transition_model,
+    build_comparison_models, build_keras_adaboost_model, build_lightweight_adaboost_model,
+    build_fcnn_model, build_deep_fcnn_model, build_lightweight_fcnn_model,
     build_wide_fcnn_model, build_shallow_fcnn_model, build_custom_fcnn_model, get_callbacks
 )
 from evaluate import evaluate_by_snr
 
 # Import custom layers for model loading
 from model.complex_nn_model import (
-    ComplexConv1D, ComplexBatchNormalization, ComplexDense, ComplexMagnitude, 
+    ComplexConv1D, ComplexBatchNormalization, ComplexDense, ComplexMagnitude,
     ComplexActivation, ComplexPooling1D,
     complex_relu, mod_relu, zrelu, crelu, cardioid, complex_tanh, phase_amplitude_activation,
     complex_elu, complex_leaky_relu, complex_swish, real_imag_mixed_relu
@@ -45,6 +46,9 @@ from model.hybrid_complex_resnet_model import (
 )
 from model.hybrid_transition_resnet_model import (
     HybridTransitionBlock
+)
+from model.transformer_model import (
+    RotaryPositionalEncoding, PhaseBasedPositionalEncoding
 )
 
 
@@ -71,12 +75,15 @@ def get_file_suffix(denoising_method, augment_data):
 def get_custom_objects_for_model(model_name):
     """Get custom objects dict for specific model types that need them"""
     # Models that need complex layer custom objects
-    complex_models = ['complex_nn', 'hybrid_complex_resnet', 'lightweight_hybrid', 
+    complex_models = ['complex_nn', 'hybrid_complex_resnet', 'lightweight_hybrid',
                      'hybrid_transition_resnet', 'lightweight_transition']
-    
+
+    # Models that need transformer custom objects
+    transformer_models = ['transformer_rope_sequential', 'transformer_rope_phase']
+
     # Models from comparison_models that might need custom objects
     comparison_models = ['high_complex', 'medium_complex', 'low_complex']
-    
+
     if model_name in complex_models or model_name in comparison_models:
         return {
             'ComplexConv1D': ComplexConv1D,
@@ -100,6 +107,11 @@ def get_custom_objects_for_model(model_name):
             'complex_leaky_relu': complex_leaky_relu,
             'complex_swish': complex_swish,
             'real_imag_mixed_relu': real_imag_mixed_relu
+        }
+    elif model_name in transformer_models:
+        return {
+            'RotaryPositionalEncoding': RotaryPositionalEncoding,
+            'PhaseBasedPositionalEncoding': PhaseBasedPositionalEncoding
         }
     return None
 
@@ -209,10 +221,11 @@ def evaluate_model_variants(model_name, model_base_path, X_test, y_test, snr_tes
 def get_available_models():
     """Return list of all available model types"""
     return [
-        'cnn1d', 'cnn2d', 'resnet', 'complex_nn', 'transformer', 
+        'cnn1d', 'cnn2d', 'resnet', 'complex_nn', 'transformer',
+        'transformer_rope_sequential', 'transformer_rope_phase',
         'lstm', 'advanced_lstm', 'multi_scale_lstm', 'lightweight_lstm',
-        'hybrid_complex_resnet', 'lightweight_hybrid', 
-        'hybrid_transition_resnet', 'lightweight_transition', 
+        'hybrid_complex_resnet', 'lightweight_hybrid',
+        'hybrid_transition_resnet', 'lightweight_transition',
         'comparison_models', 'adaboost', 'lightweight_adaboost',
         'fcnn', 'deep_fcnn', 'lightweight_fcnn', 'wide_fcnn', 'shallow_fcnn'
     ]
@@ -243,6 +256,8 @@ def build_model_by_name(model_name, input_shape, num_classes):
         'resnet': build_resnet_model,
         'complex_nn': build_complex_nn_model,
         'transformer': build_transformer_model,
+        'transformer_rope_sequential': build_transformer_rope_sequential_model,
+        'transformer_rope_phase': build_transformer_rope_phase_model,
         'lstm': build_lstm_model,
         'advanced_lstm': build_advanced_lstm_model,
         'multi_scale_lstm': build_multi_scale_lstm_model,
@@ -384,6 +399,7 @@ Examples:
   %(prog)s --models hybrid_complex_resnet lightweight_lstm fcnn --mode evaluate  
   %(prog)s --models cnn2d complex_nn adaboost --mode all --epochs 100
   %(prog)s --models comparison_models --mode train  # Will train all comparison models
+  %(prog)s --models resnet --mode train --stratified_split  # Use stratified splitting by (modulation, SNR)
         """
     )
     
@@ -423,6 +439,9 @@ Examples:
     
     parser.add_argument('--denoised_cache_dir', type=str, default='../denoised_datasets',
                         help='Directory to save/load cached denoised datasets')
+    
+    parser.add_argument('--stratified_split', action='store_true',
+                        help='Use stratified splitting by both modulation type and SNR (ensures balanced distribution)')
     
     args = parser.parse_args()
     
@@ -473,13 +492,26 @@ Examples:
         print(f"\n{'='*60}")
         print("PREPARING DATA")
         print(f"{'='*60}")
-        X_train, X_val, X_test, y_train, y_val, y_test, snr_train, snr_val, snr_test, mods = prepare_data_by_snr(
-            dataset, 
-            augment_data=args.augment_data,
-            denoising_method=args.denoising_method,
-            ddae_model_path=args.ddae_model_path,
-            denoised_cache_dir=args.denoised_cache_dir
-        )
+        
+        # Choose data preparation method based on stratified_split flag
+        if args.stratified_split:
+            print("Using stratified splitting by (modulation type, SNR) combinations...")
+            X_train, X_val, X_test, y_train, y_val, y_test, snr_train, snr_val, snr_test, mods = prepare_data_by_snr_stratified(
+                dataset, 
+                augment_data=args.augment_data,
+                denoising_method=args.denoising_method,
+                ddae_model_path=args.ddae_model_path,
+                denoised_cache_dir=args.denoised_cache_dir
+            )
+        else:
+            print("Using standard splitting by modulation type only...")
+            X_train, X_val, X_test, y_train, y_val, y_test, snr_train, snr_val, snr_test, mods = prepare_data_by_snr(
+                dataset, 
+                augment_data=args.augment_data,
+                denoising_method=args.denoising_method,
+                ddae_model_path=args.ddae_model_path,
+                denoised_cache_dir=args.denoised_cache_dir
+            )
     
     # Training
     if args.mode in ['train', 'all']:
@@ -487,8 +519,10 @@ Examples:
         print("TRAINING SELECTED MODELS")
         print(f"{'='*60}")
         
-        # Generate file suffix based on denoising method and data augmentation
+        # Generate file suffix based on denoising method, data augmentation, and stratification
         suffix = get_file_suffix(args.denoising_method, args.augment_data)
+        if args.stratified_split:
+            suffix += "_stratified"
         
         input_shape = X_train.shape[1:]
         num_classes = len(mods)
@@ -512,6 +546,8 @@ Examples:
         
         # Generate file suffix for evaluation (same as training)
         suffix = get_file_suffix(args.denoising_method, args.augment_data)
+        if args.stratified_split:
+            suffix += "_stratified"
         
         print(f"Models to evaluate: {selected_models}")
         
