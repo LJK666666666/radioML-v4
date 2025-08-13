@@ -1,0 +1,44 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Data files and datasets
+data/
+denoised_datasets/
+*.pkl
+*.h5
+*.hdf5
+
+# Model weights and large files
+model_weight_saved/
+*.keras
+*.weights
+*.pb
+
+# Large result files
+results/
+output/
+
+# PDF files
+*.pdf
+
+# Large notebook files
+visualize_bpsk_denoised_data.ipynb
