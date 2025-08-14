@@ -44,4 +44,5 @@ output/
 visualize_bpsk_denoised_data.ipynb
 
 # other programs
-ULCNN/
+# ULCNN/
+ULCNN/RML2016.10a_dict.pkl
