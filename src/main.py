@@ -128,14 +128,21 @@ def get_custom_objects_for_model(model_name):
         }
         
         # Add ULCNN-specific layers if available
-        if ULCNN_LAYERS_AVAILABLE and model_name in ulcnn_complex_models:
+        if ULCNN_LAYERS_AVAILABLE:
+            from model.complexnn import (
+                TransposeLayer, ExtractChannelLayer, TrigonometricLayer, sqrt_init
+            )
             custom_objects.update({
                 'ULCNNComplexConv1D': ULCNNComplexConv1D,
                 'ULCNNComplexBatchNormalization': ULCNNComplexBatchNormalization,
                 'ULCNNComplexDense': ULCNNComplexDense,
                 'ChannelShuffle': ChannelShuffle,
                 'DWConvMobile': DWConvMobile,
-                'ChannelAttention': ChannelAttention
+                'ChannelAttention': ChannelAttention,
+                'TransposeLayer': TransposeLayer,
+                'ExtractChannelLayer': ExtractChannelLayer,
+                'TrigonometricLayer': TrigonometricLayer,
+                'sqrt_init': sqrt_init
             })
         
         return custom_objects

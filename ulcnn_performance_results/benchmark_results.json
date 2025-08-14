@@ -1,0 +1,451 @@
+[
+  {
+    "model_name": "cnn1d",
+    "total_params": 1177163,
+    "trainable_params": 1176267,
+    "batch_size": 128,
+    "epochs": 2,
+    "training_time_seconds": 14.118617057800293,
+    "time_per_epoch_seconds": 7.0593085289001465,
+    "samples_per_second": 283.3138673302332,
+    "final_train_accuracy": 0.20100000500679016,
+    "final_val_accuracy": 0.11249999701976776,
+    "final_train_loss": 2.1896812915802,
+    "final_val_loss": 2.3964803218841553,
+    "gradient_flow": {
+      "mean_gradient_norm": 1.116798758506775,
+      "mean_weight_norm": 5.417935371398926,
+      "mean_gradient_ratio": 15.644575119018555,
+      "gradient_stability": 1.0896090269088745
+    },
+    "memory_usage": {
+      "duration": 15.353288888931274,
+      "start_memory_mb": 921.27734375,
+      "end_memory_mb": 2913.671875,
+      "peak_memory_mb": 2913.671875,
+      "memory_increase_mb": 1992.39453125,
+      "memory_samples": [
+        921.27734375,
+        1938.3984375,
+        2913.671875
+      ],
+      "gpu_memory_samples": [
+        0.0,
+        4.49658203125,
+        13.528564453125
+      ],
+      "top_memory_allocations": [
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 258",
+            "    return pywrap_tf_session.PyTensor.__new__("
+          ],
+          0.9532194137573242
+        ],
+        [
+          [
+            "  File \"<frozen abc>\", line 123"
+          ],
+          0.9064130783081055
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 1228",
+            "    self._gradient_function = None"
+          ],
+          0.65777587890625
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 1178",
+            "    self = Operation(c_op, SymbolicTensor)"
+          ],
+          0.632476806640625
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 4283",
+            "    return {"
+          ],
+          0.202392578125
+        ]
+      ]
+    },
+    "timestamp": "2025-08-14T16:30:16.879558"
+  },
+  {
+    "model_name": "resnet",
+    "total_params": 577483,
+    "trainable_params": 575563,
+    "batch_size": 128,
+    "epochs": 2,
+    "training_time_seconds": 26.390313386917114,
+    "time_per_epoch_seconds": 13.195156693458557,
+    "samples_per_second": 151.5707654302803,
+    "final_train_accuracy": 0.36800000071525574,
+    "final_val_accuracy": 0.07999999821186066,
+    "final_train_loss": 1.7555192708969116,
+    "final_val_loss": 2.4268798828125,
+    "gradient_flow": {
+      "mean_gradient_norm": 0.42285043001174927,
+      "mean_weight_norm": 5.341892242431641,
+      "mean_gradient_ratio": 3.598659038543701,
+      "gradient_stability": 0.042969491332769394
+    },
+    "memory_usage": {
+      "duration": 26.624524354934692,
+      "start_memory_mb": 2924.86328125,
+      "end_memory_mb": 3691.9140625,
+      "peak_memory_mb": 3691.9140625,
+      "memory_increase_mb": 767.05078125,
+      "memory_samples": [
+        2924.86328125,
+        2924.86328125,
+        3691.9140625
+      ],
+      "gpu_memory_samples": [
+        13.528564453125,
+        15.759765625,
+        20.15625
+      ],
+      "top_memory_allocations": [
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 258",
+            "    return pywrap_tf_session.PyTensor.__new__("
+          ],
+          1.9524660110473633
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 1228",
+            "    self._gradient_function = None"
+          ],
+          1.3502655029296875
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 1178",
+            "    self = Operation(c_op, SymbolicTensor)"
+          ],
+          1.2983322143554688
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 4283",
+            "    return {"
+          ],
+          0.41546630859375
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 4246",
+            "    snapshot = []"
+          ],
+          0.36353302001953125
+        ]
+      ]
+    },
+    "timestamp": "2025-08-14T16:30:44.144207"
+  },
+  {
+    "model_name": "complex_nn",
+    "total_params": 810955,
+    "trainable_params": 810955,
+    "batch_size": 128,
+    "epochs": 2,
+    "training_time_seconds": 36.414939641952515,
+    "time_per_epoch_seconds": 18.207469820976257,
+    "samples_per_second": 109.84502622631632,
+    "final_train_accuracy": 0.2865000069141388,
+    "final_val_accuracy": 0.3100000023841858,
+    "final_train_loss": 2.0353140830993652,
+    "final_val_loss": 1.8332629203796387,
+    "gradient_flow": {
+      "mean_gradient_norm": 0.5322404503822327,
+      "mean_weight_norm": 5.336282730102539,
+      "mean_gradient_ratio": 2.6329965591430664,
+      "gradient_stability": 0.16307272017002106
+    },
+    "memory_usage": {
+      "duration": 36.98807382583618,
+      "start_memory_mb": 3694.5546875,
+      "end_memory_mb": 4437.40234375,
+      "peak_memory_mb": 4437.40234375,
+      "memory_increase_mb": 742.84765625,
+      "memory_samples": [
+        3694.5546875,
+        3694.5546875,
+        4437.40234375
+      ],
+      "gpu_memory_samples": [
+        20.15625,
+        23.7158203125,
+        30.044921875
+      ],
+      "top_memory_allocations": [
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 258",
+            "    return pywrap_tf_session.PyTensor.__new__("
+          ],
+          2.893458366394043
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 1228",
+            "    self._gradient_function = None"
+          ],
+          1.9203643798828125
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 1178",
+            "    self = Operation(c_op, SymbolicTensor)"
+          ],
+          1.8465042114257812
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 4283",
+            "    return {"
+          ],
+          0.59088134765625
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 4246",
+            "    snapshot = []"
+          ],
+          0.5170211791992188
+        ]
+      ]
+    },
+    "timestamp": "2025-08-14T16:31:22.166373"
+  },
+  {
+    "model_name": "mcldnn",
+    "total_params": 405175,
+    "trainable_params": 405175,
+    "batch_size": 128,
+    "epochs": 2,
+    "training_time_seconds": 7.396272897720337,
+    "time_per_epoch_seconds": 3.6981364488601685,
+    "samples_per_second": 540.8129277156432,
+    "final_train_accuracy": 0.09350000321865082,
+    "final_val_accuracy": 0.08749999850988388,
+    "final_train_loss": 2.4012954235076904,
+    "final_val_loss": 2.39841628074646,
+    "gradient_flow": {
+      "mean_gradient_norm": 0.1713615506887436,
+      "mean_weight_norm": 5.51263952255249,
+      "mean_gradient_ratio": 4.595763683319092,
+      "gradient_stability": 0.005968955811113119
+    },
+    "memory_usage": {
+      "duration": 7.647866487503052,
+      "start_memory_mb": 4439.33203125,
+      "end_memory_mb": 4514.33203125,
+      "peak_memory_mb": 4514.33203125,
+      "memory_increase_mb": 75.0,
+      "memory_samples": [
+        4439.33203125,
+        4441.76171875,
+        4514.33203125
+      ],
+      "gpu_memory_samples": [
+        30.044921875,
+        31.6572265625,
+        35.143310546875
+      ],
+      "top_memory_allocations": [
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 258",
+            "    return pywrap_tf_session.PyTensor.__new__("
+          ],
+          1.4050111770629883
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 1228",
+            "    self._gradient_function = None"
+          ],
+          0.94976806640625
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 1178",
+            "    self = Operation(c_op, SymbolicTensor)"
+          ],
+          0.913238525390625
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 4283",
+            "    return {"
+          ],
+          0.292236328125
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 4246",
+            "    snapshot = []"
+          ],
+          0.255706787109375
+        ]
+      ]
+    },
+    "timestamp": "2025-08-14T16:31:30.353331"
+  },
+  {
+    "model_name": "pet",
+    "total_params": 71871,
+    "trainable_params": 71871,
+    "batch_size": 128,
+    "epochs": 2,
+    "training_time_seconds": 4.116528511047363,
+    "time_per_epoch_seconds": 2.0582642555236816,
+    "samples_per_second": 971.6925290971166,
+    "final_train_accuracy": 0.09549999982118607,
+    "final_val_accuracy": 0.09000000357627869,
+    "final_train_loss": 2.3967032432556152,
+    "final_val_loss": 2.398425340652466,
+    "gradient_flow": {
+      "mean_gradient_norm": 0.04409034550189972,
+      "mean_weight_norm": 2.899869441986084,
+      "mean_gradient_ratio": 2.9845845699310303,
+      "gradient_stability": 0.0017210841178894043
+    },
+    "memory_usage": {
+      "duration": 4.268612861633301,
+      "start_memory_mb": 4522.49609375,
+      "end_memory_mb": 4536.546875,
+      "peak_memory_mb": 4536.546875,
+      "memory_increase_mb": 14.05078125,
+      "memory_samples": [
+        4522.49609375,
+        4522.49609375,
+        4536.546875
+      ],
+      "gpu_memory_samples": [
+        35.135986328125,
+        35.417724609375,
+        36.008056640625
+      ],
+      "top_memory_allocations": [
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 258",
+            "    return pywrap_tf_session.PyTensor.__new__("
+          ],
+          0.8010530471801758
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 1228",
+            "    self._gradient_function = None"
+          ],
+          0.5322113037109375
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 1178",
+            "    self = Operation(c_op, SymbolicTensor)"
+          ],
+          0.5117416381835938
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 4283",
+            "    return {"
+          ],
+          0.16375732421875
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 4246",
+            "    snapshot = []"
+          ],
+          0.14328765869140625
+        ]
+      ]
+    },
+    "timestamp": "2025-08-14T16:31:35.104048"
+  },
+  {
+    "model_name": "ulcnn",
+    "total_params": 9751,
+    "trainable_params": 9287,
+    "batch_size": 128,
+    "epochs": 2,
+    "training_time_seconds": 36.18652558326721,
+    "time_per_epoch_seconds": 18.093262791633606,
+    "samples_per_second": 110.53838232675245,
+    "final_train_accuracy": 0.17350000143051147,
+    "final_val_accuracy": 0.10750000178813934,
+    "final_train_loss": 2.247166633605957,
+    "final_val_loss": 2.397814989089966,
+    "gradient_flow": {
+      "mean_gradient_norm": 0.3022370934486389,
+      "mean_weight_norm": 1.7465206384658813,
+      "mean_gradient_ratio": 16.1607608795166,
+      "gradient_stability": 0.047434139996767044
+    },
+    "memory_usage": {
+      "duration": 37.69273805618286,
+      "start_memory_mb": 4538.125,
+      "end_memory_mb": 4902.15625,
+      "peak_memory_mb": 4902.15625,
+      "memory_increase_mb": 364.03125,
+      "memory_samples": [
+        4538.125,
+        4538.125,
+        4902.15625
+      ],
+      "gpu_memory_samples": [
+        36.00537109375,
+        36.0556640625,
+        36.147216796875
+      ],
+      "top_memory_allocations": [
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 258",
+            "    return pywrap_tf_session.PyTensor.__new__("
+          ],
+          4.300360679626465
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 1228",
+            "    self._gradient_function = None"
+          ],
+          2.8379974365234375
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 1178",
+            "    self = Operation(c_op, SymbolicTensor)"
+          ],
+          2.7288436889648438
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 4283",
+            "    return {"
+          ],
+          0.87322998046875
+        ],
+        [
+          [
+            "  File \"/home/test/.conda/envs/ljk2/lib/python3.12/site-packages/tensorflow/python/framework/ops.py\", line 3427",
+            "    name_key = name.lower()"
+          ],
+          0.8282327651977539
+        ]
+      ]
+    },
+    "timestamp": "2025-08-14T16:32:13.887063"
+  }
+]

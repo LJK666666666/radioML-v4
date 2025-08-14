@@ -16,6 +16,7 @@ import keras.backend as K
 import numpy as np
 
 
+@register_keras_serializable(package="ComplexNN")
 def sqrt_init(shape, dtype=None):
     """
     Square root initialization for complex batch normalization parameters.

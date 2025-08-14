@@ -156,12 +156,17 @@ def build_pet_model_single_input(input_shape, num_classes):
     x = Reshape([input_shape[0], input_shape[1], 1], input_shape=input_shape)(inputs)
     
     # Split into I and Q components internally
-    input_i = Lambda(lambda x: x[:, 0, :], name='extract_i')(inputs)  # (batch, 128)
-    input_q = Lambda(lambda x: x[:, 1, :], name='extract_q')(inputs)  # (batch, 128)
+    from .complexnn import ExtractChannelLayer
+    input_i = ExtractChannelLayer(0, 1, name='extract_i')(inputs)  # (batch, 1, 128)
+    input_q = ExtractChannelLayer(1, 2, name='extract_q')(inputs)  # (batch, 1, 128)
+    
+    # Reshape to remove the channel dimension and then add back for processing
+    input_i = Reshape((128,), name='reshape_i_flat')(input_i)  # (batch, 128)
+    input_q = Reshape((128,), name='reshape_q_flat')(input_q)  # (batch, 128)
     
     # Reshape I and Q for processing
-    input_i = Reshape((input_shape[1], 1), name='reshape_i')(input_i)  # (batch, 128, 1)
-    input_q = Reshape((input_shape[1], 1), name='reshape_q')(input_q)  # (batch, 128, 1)
+    input_i = Reshape((input_shape[1], 1), name='reshape_i_final')(input_i)  # (batch, 128, 1)
+    input_q = Reshape((input_shape[1], 1), name='reshape_q_final')(input_q)  # (batch, 128, 1)
     
     # Phase enhancement (simplified version)
     # Learn phase parameter from flattened input
@@ -169,8 +174,9 @@ def build_pet_model_single_input(input_shape, num_classes):
     phase = Dense(1, activation='linear', name='phase_learning')(x_flat)
     
     # Apply trigonometric transformations
-    cos_phase = Lambda(lambda x: tf.cos(x), name='cos_transform')(phase)
-    sin_phase = Lambda(lambda x: tf.sin(x), name='sin_transform')(phase)
+    from .complexnn import TrigonometricLayer
+    cos_phase = TrigonometricLayer('cos', name='cos_transform')(phase)
+    sin_phase = TrigonometricLayer('sin', name='sin_transform')(phase)
     
     # Transform I and Q channels
     i_flat = Flatten(name='flatten_i')(input_i)

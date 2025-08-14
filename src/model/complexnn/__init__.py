@@ -16,6 +16,7 @@ from .dense import ComplexDense
 from .utils import (
     channel_shuffle, dwconv_mobile, channelattention,
     ChannelShuffle, DWConvMobile, ChannelAttention,
+    TransposeLayer, ExtractChannelLayer, TrigonometricLayer,
     rotate_matrix, rotate_data_augmentation
 )
 
@@ -37,6 +38,9 @@ __all__ = [
     'ChannelShuffle',
     'DWConvMobile',
     'ChannelAttention',
+    'TransposeLayer',
+    'ExtractChannelLayer',
+    'TrigonometricLayer',
     
     # Data augmentation utilities
     'rotate_matrix',

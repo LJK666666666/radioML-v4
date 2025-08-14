@@ -15,6 +15,69 @@ from keras.saving import register_keras_serializable
 import keras.backend as K
 
 
+@register_keras_serializable(package="ComplexNN")
+class TransposeLayer(Layer):
+    """
+    Custom transpose layer to replace Lambda functions for serialization compatibility.
+    """
+    def __init__(self, perm, **kwargs):
+        super(TransposeLayer, self).__init__(**kwargs)
+        self.perm = perm
+    
+    def call(self, inputs):
+        return tf.transpose(inputs, perm=self.perm)
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({'perm': self.perm})
+        return config
+
+
+@register_keras_serializable(package="ComplexNN")
+class ExtractChannelLayer(Layer):
+    """
+    Custom layer to extract specific channels from input tensor.
+    """
+    def __init__(self, channel_start, channel_end, **kwargs):
+        super(ExtractChannelLayer, self).__init__(**kwargs)
+        self.channel_start = channel_start
+        self.channel_end = channel_end
+    
+    def call(self, inputs):
+        return inputs[:, self.channel_start:self.channel_end, :]
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'channel_start': self.channel_start,
+            'channel_end': self.channel_end
+        })
+        return config
+
+
+@register_keras_serializable(package="ComplexNN")
+class TrigonometricLayer(Layer):
+    """
+    Custom layer for trigonometric transformations (cos, sin).
+    """
+    def __init__(self, function='cos', **kwargs):
+        super(TrigonometricLayer, self).__init__(**kwargs)
+        self.function = function
+    
+    def call(self, inputs):
+        if self.function == 'cos':
+            return tf.cos(inputs)
+        elif self.function == 'sin':
+            return tf.sin(inputs)
+        else:
+            raise ValueError(f"Unsupported function: {self.function}")
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({'function': self.function})
+        return config
+
+
 def channel_shuffle(x, groups=2):
     """
     Channel shuffle operation for efficient neural networks.

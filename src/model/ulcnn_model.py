@@ -53,8 +53,8 @@ def build_ulcnn_model(input_shape, num_classes, n_neuron=16, n_mobileunit=6, ker
     
     # Reshape to (128, 2) for complex processing
     # This treats data as 128 time steps with complex values (I, Q)
-    from keras.layers import Lambda
-    x = Lambda(lambda x: tf.transpose(x, perm=[0, 2, 1]))(inputs)  # (batch, 128, 2)
+    from .complexnn import TransposeLayer
+    x = TransposeLayer(perm=[0, 2, 1], name='transpose_input')(inputs)  # (batch, 128, 2)
     
     # Initial complex convolution
     x = ComplexConv1D(n_neuron, kernel_size, padding='same', name='complex_conv_initial')(x)

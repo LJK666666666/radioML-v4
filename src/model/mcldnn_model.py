@@ -43,12 +43,13 @@ def build_mcldnn_model(input_shape, num_classes):
     input_main = Input(shape=input_shape, name='input_main')
     
     # Extract I and Q channels for separate processing
-    input_i = Lambda(lambda x: x[:, 0:1, :], name='extract_i_channel')(input_main)  # (batch, 1, 128)
-    input_q = Lambda(lambda x: x[:, 1:2, :], name='extract_q_channel')(input_main)  # (batch, 1, 128)
+    from .complexnn import ExtractChannelLayer, TransposeLayer
+    input_i = ExtractChannelLayer(0, 1, name='extract_i_channel')(input_main)  # (batch, 1, 128)
+    input_q = ExtractChannelLayer(1, 2, name='extract_q_channel')(input_main)  # (batch, 1, 128)
     
     # Reshape I and Q for 1D convolution: (batch, 1, 128) -> (batch, 128, 1)
-    input_i_reshaped = Lambda(lambda x: tf.transpose(x, [0, 2, 1]), name='reshape_i')(input_i)
-    input_q_reshaped = Lambda(lambda x: tf.transpose(x, [0, 2, 1]), name='reshape_q')(input_q)
+    input_i_reshaped = TransposeLayer([0, 2, 1], name='reshape_i')(input_i)
+    input_q_reshaped = TransposeLayer([0, 2, 1], name='reshape_q')(input_q)
     
     # Part A: Multi-channel Inputs and Spatial Characteristics Mapping Section
     
@@ -201,12 +202,13 @@ def build_simplified_mcldnn_model(input_shape, num_classes):
     inputs = Input(shape=input_shape, name='input')
     
     # Extract I and Q channels
-    input_i = Lambda(lambda x: x[:, 0:1, :], name='extract_i')(inputs)
-    input_q = Lambda(lambda x: x[:, 1:2, :], name='extract_q')(inputs)
+    from .complexnn import ExtractChannelLayer, TransposeLayer
+    input_i = ExtractChannelLayer(0, 1, name='extract_i')(inputs)
+    input_q = ExtractChannelLayer(1, 2, name='extract_q')(inputs)
     
     # Reshape for processing
-    input_i = Lambda(lambda x: tf.transpose(x, [0, 2, 1]), name='reshape_i')(input_i)
-    input_q = Lambda(lambda x: tf.transpose(x, [0, 2, 1]), name='reshape_q')(input_q)
+    input_i = TransposeLayer([0, 2, 1], name='reshape_i')(input_i)
+    input_q = TransposeLayer([0, 2, 1], name='reshape_q')(input_q)
     
     # Multi-channel processing
     input_2d = Reshape([input_shape[0], input_shape[1], 1], input_shape=input_shape)(inputs)
