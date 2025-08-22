@@ -1,0 +1,6 @@
+\beamer@sectionintoc {1}{Background and Challenges}{3}{0}{1}
+\beamer@sectionintoc {2}{GRCR-Net Innovation Overview}{5}{0}{2}
+\beamer@sectionintoc {3}{Core Technical Innovations}{6}{0}{3}
+\beamer@sectionintoc {4}{Experimental Results and Analysis}{15}{0}{4}
+\beamer@sectionintoc {5}{Technical Contributions and Impact}{20}{0}{5}
+\beamer@sectionintoc {6}{Conclusion and Future Work}{24}{0}{6}

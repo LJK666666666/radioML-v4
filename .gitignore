@@ -11,15 +11,6 @@ build/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
 # Data files and datasets
 data/
 denoised_datasets/
@@ -39,9 +30,6 @@ output/
 
 # PDF files
 *.pdf
-
-# Large notebook files
-visualize_bpsk_denoised_data.ipynb
 
 # other programs
 # ULCNN/

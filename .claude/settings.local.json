@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python snr_split_analysis.py)",
+      "Bash(python model_benchmark.py --help)",
+      "Bash(python:*)"
+    ],
+    "deny": []
+  }
+}

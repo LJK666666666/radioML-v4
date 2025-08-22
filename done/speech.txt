@@ -1,0 +1,56 @@
+Good afternoon, everyone. To the distinguished teachers and fellow students. Thank you for coming to my presentation. It's my honor to be here today to share our work, GRCR-Net, a breakthrough technology.
+
+Here is the outline for my presentation: First, the background and challenges. Then, our technical innovations and experimental results. Finally, a look at our future work.
+
+Automatic Modulation Classification, or AMC, is a technology that automatically classifies the modulation type of a received signal. It has critical applications in areas like cognitive radio, military communications, and 5G/6G networks. The key challenge is how to classify the signal while preserving its I/Q information under low SNR.
+
+Existing methods, including likelihood-based methods, feature-based methods, and deep learning methods, all struggle to make accurate predictions at low SNR. As we can see, when the SNR drops to -20dB, the accuracy becomes extremely low.
+
+So what does -20dB mean? At an SNR of -20dB, the signal power is only 1%, and the other 99% is all noise. The graph on the right shows how the noise power ratio changes with SNR. When the SNR is below 0dB, the noise power increases rapidly and takes up a very large proportion.
+
+Under these extreme noise conditions, even the previous SOTA method could only achieve an overall accuracy of about 60%. To address this, we propose an adaptive Gaussian Process Regression denoising method to better extract the signal from the noise.
+
+So, the core question is, Why tackle a problem where signals are 99% noise? Do such signals really exist in the real world? The answer is yes. For example, in military reconnaissance, the enemy's communication signals are very weak. In deep space communication, after traveling billions of kilometers through cosmic noise, the signal's SNR is often extremely low.
+
+For this, We always adopt Two-Step Approach to Tackle the Impossible. And The focus of this work is on Step 1: building a noise-robust model.
+
+Our method includes three parts: GPR Denoising, Rotational Augmentation, Hybrid Architecture. This method achieved an accuracy of 65.38%, surpassing the previous SOTA.
+
+First, we build the signal model. We assume the noise is Additive White Gaussian Noise. The signal at each point follows a Gaussian distribution, and the entire signal is considered as a Gaussian Process. So we use gaussian process regression to denoise.
+
+Then, by calculating the total power, the power ratio, the noise power, 
+
+and finally get an estimate of the noise standard deviation.
+
+We used an RBF kernel function, where the scale parameter is adaptive. Because at low SNR, a large scale parameter would cause over-smoothing and loss of signal information. Therefore, we use an adaptively smaller scale parameter.
+
+Here is the complete Algorithm. As you can see from the graph on the right, in the first row, as the noise increases, the constellation diagram becomes less and less clear. In the second row, Our denoising method can effectively recover it.
+
+The second part is the rotational data augmentation method. From the signal's constellation diagram, we can see that the data has rotational properties. We use it to perform rotational data augmentation.
+
+The third part is our neural network architecture. We use a complex network to handle the I/Q channels together, and use residual connections to improve the network's performance.
+
+Here are the dataset and experimental environment. It is a public and widely studied dataset.
+
+After applying our method, our neural network showed a significant improvement compared to the baseline model.
+
+This is our ablation study. We can see that GPR denoising contributes most, with an improvement of 5.86%. Achieved a total improvement of 8.44%.
+
+This is a comparison of our method and the baseline model at all SNR levels.
+
+As you can see, GPR denoising shows good improvement at all SNR levels, especially in the low-to-medium range. For instance, at an SNR of -12dB, the accuracy nearly doubles.
+
+After applying our method, the neural network improved greatly. It can converge quickly within 5 to 10 epochs and achieve a high accuracy.
+
+These are Our three major technical contributions.
+
+We collected many cutting-edge papers in this field and compared them to verify the superiority of our method. Compared to the previous SOTA, we achieved a solid improvement of 0.79% while maintaining a lightweight model size.
+
+The five yellow bars represent the methods from the papers. The three light blue ones are our original baseline models, which are far behind the methods from the papers. However, after applying our denoising and data augmentation, the performance made a leap. With the improvement shown in dark blue, our total performance now approaches or even surpasses the methods from the papers, becoming the new SOTA.
+
+It’s the research summary. In addition to achievements and impact, it’s worth noticing that our code is completely open source.
+
+For future work, we can make more extensive experiments on other datasets to test its performance on other scenarios, further design and improve the neural network.
+
+For specific technical details, you are welcome to visit our open-source code repository for more information. Thank you for listening.
+

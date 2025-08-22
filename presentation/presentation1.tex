@@ -1,0 +1,429 @@
+\documentclass[aspectratio=169]{beamer}
+\usepackage[UTF8]{ctex}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{multicol}
+
+% 主题设置
+\usetheme{Madrid}
+\usecolortheme{default}
+
+% 自定义颜色
+\definecolor{myblue}{RGB}{0,102,204}
+\definecolor{mygreen}{RGB}{0,153,76}
+\definecolor{myred}{RGB}{204,0,51}
+
+% 设置主题颜色
+\setbeamercolor{structure}{fg=myblue}
+\setbeamercolor{frametitle}{bg=myblue,fg=white}
+
+% 标题页信息
+\title[基于改进YOLOv5的反光衣检测研究]{基于改进YOLOv5的反光衣检测研究：\\GhostNet、CA注意力与WIoU损失的集成与评估}
+\subtitle{工业安全检测中的深度学习应用}
+\author{研究团队}
+\institute{计算机科学与技术学院}
+\date{\today}
+
+% 去掉导航符号
+\setbeamertemplate{navigation symbols}{}
+
+% 页脚设置
+\setbeamertemplate{footline}[frame number]
+
+\begin{document}
+
+% 标题页
+\begin{frame}
+    \titlepage
+\end{frame}
+
+% 目录页
+\begin{frame}{目录}
+    \tableofcontents
+\end{frame}
+
+% 第一部分：研究背景
+\section{研究背景与动机}
+
+\begin{frame}{工业安全检测的重要性}
+    \begin{columns}
+        \begin{column}{0.6\textwidth}
+            \begin{itemize}
+                \item \textbf{安全事故频发}：工业现场安全事故造成巨大损失
+                \item \textbf{人工监控局限}：传统人工监控效率低、成本高
+                \item \textbf{智能化需求}：急需智能化安全监控系统
+                \item \textbf{实时性要求}：毫秒级响应，及时预警
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.4\textwidth}
+            \begin{center}
+                \includegraphics[width=\textwidth]{figure/safety_score_comparison.png}
+            \end{center}
+        \end{column}
+    \end{columns}
+    
+    \vspace{0.5cm}
+    \begin{alertblock}{核心挑战}
+        如何在保证检测精度的同时，实现模型的轻量化和实时性？
+    \end{alertblock}
+\end{frame}
+
+\begin{frame}{反光衣检测任务特点}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \textbf{任务特殊性：}
+            \begin{itemize}
+                \item 类别不平衡问题严重
+                \item 环境复杂（光照、遮挡）
+                \item 误报代价不对称
+                \item 实时性要求严格
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{技术挑战：}
+            \begin{itemize}
+                \item 小目标检测困难
+                \item 反光材质识别复杂
+                \item 模型轻量化需求
+                \item 边缘设备部署限制
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    
+    \vspace{0.5cm}
+    \begin{block}{研究目标}
+        构建高精度、轻量化的反光衣检测模型，满足工业现场实时监控需求
+    \end{block}
+\end{frame}
+
+% 第二部分：技术方案
+\section{技术方案与创新点}
+
+\begin{frame}{YOLOv5基础架构}
+    \begin{center}
+        \includegraphics[width=0.9\textwidth]{figure/yolov5s_architecture.png}
+    \end{center}
+    
+    \begin{itemize}
+        \item \textbf{Backbone}：特征提取网络，采用CSP结构
+        \item \textbf{Neck}：特征融合网络，FPN+PAN设计
+        \item \textbf{Head}：检测头，多尺度目标检测
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{改进策略一：GhostNet轻量化}
+    \begin{center}
+        \includegraphics[width=0.95\textwidth]{figure/ghostnet_module.png}
+    \end{center}
+    
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \textbf{核心思想：}
+            \begin{itemize}
+                \item 特征图冗余性利用
+                \item 廉价操作生成Ghost特征
+                \item 大幅减少参数量和计算量
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{技术优势：}
+            \begin{itemize}
+                \item 参数量减少27.6\%
+                \item GFLOPs降低34.2\%
+                \item 保持相对较高精度
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{改进策略二：CA注意力机制}
+    \begin{center}
+        \includegraphics[width=0.8\textwidth]{figure/ca_attention.png}
+    \end{center}
+    
+    \begin{itemize}
+        \item \textbf{位置感知}：同时捕获水平和垂直方向的位置信息
+        \item \textbf{轻量设计}：避免大量计算开销
+        \item \textbf{精确定位}：增强模型对目标位置的感知能力
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{改进策略三：WIoU损失函数}
+    \begin{columns}
+        \begin{column}{0.6\textwidth}
+            \textbf{传统IoU损失的问题：}
+            \begin{itemize}
+                \item 梯度消失问题
+                \item 收敛速度慢
+                \item 对质量差的样本敏感
+            \end{itemize}
+            
+            \vspace{0.5cm}
+            \textbf{WIoU的改进：}
+            \begin{itemize}
+                \item 动态聚焦机制
+                \item 智能梯度分配
+                \item 提升收敛效率
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.4\textwidth}
+            \begin{block}{核心公式}
+                \begin{align*}
+                    L_{WIoU} &= r_{WIoU} \times (1-IoU) \times \beta \\
+                    r_{WIoU} &= \exp\left(\frac{d^2}{c_w^2 + c_h^2}\right) \\
+                    \beta &= \left(\frac{IoU}{\alpha}\right)^{\gamma}
+                \end{align*}
+            \end{block}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% 第三部分：实验设计
+\section{实验设计与数据集}
+
+\begin{frame}{实验设计思路}
+    \begin{center}
+        \begin{tikzpicture}[node distance=1.5cm, every node/.style={text width=2cm, align=center}]
+            \node[draw, rectangle, fill=myblue!20] (baseline) {基线模型\\yolov5s\_};
+            \node[draw, rectangle, fill=mygreen!20, right of=baseline] (ghost) {Ghost轻量化\\yolov5s-ghost\_1\_};
+            \node[draw, rectangle, fill=mygreen!20, below of=baseline] (ca) {CA注意力\\yolov5s-ghost\_2\_};
+            \node[draw, rectangle, fill=mygreen!20, below of=ghost] (wiou) {WIoU损失\\yolov5s-ghost\_3\_};
+            \node[draw, rectangle, fill=myred!20, below right of=ca] (combined) {组合模型\\yolov5s-ghost\_123\_};
+
+            \draw[->] (baseline) -- (ghost);
+            \draw[->] (baseline) -- (ca);
+            \draw[->] (baseline) -- (wiou);
+            \draw[->] (ghost) -- (combined);
+            \draw[->] (ca) -- (combined);
+            \draw[->] (wiou) -- (combined);
+        \end{tikzpicture}
+    \end{center}
+    
+    \textbf{消融实验设计：}系统性评估每个改进模块的独立贡献和组合效应
+\end{frame}
+
+\begin{frame}{数据集与评价指标}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \textbf{SafetyVests数据集：}
+            \begin{itemize}
+                \item 总计3,897张图像
+                \item 训练集：2,728张（70\%）
+                \item 验证集：779张（20\%）
+                \item 测试集：390张（10\%）
+                \item 两个类别：Safety Vest、No-Safety Vest
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{评价指标体系：}
+            \begin{itemize}
+                \item \textbf{精度指标}：Precision、Recall、mAP
+                \item \textbf{效率指标}：参数量、GFLOPs、FPS
+                \item \textbf{安全评分}：$S = \alpha \times R_{critical} + (1-\alpha) \times mAP$
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    
+    \begin{alertblock}{安全评分说明}
+        $\alpha = 0.6$，强调对关键类别（No-Safety Vest）召回率的重视
+    \end{alertblock}
+\end{frame}
+
+% 第四部分：实验结果
+\section{实验结果与分析}
+
+\begin{frame}{总体性能对比}
+    \begin{center}
+        \includegraphics[width=0.85\textwidth]{figure/map_comparison.png}
+    \end{center}
+    
+    \textbf{关键发现：}基线模型在mAP@0.5和mAP@0.5:0.95上均表现最佳
+\end{frame}
+
+\begin{frame}{关键类别性能分析}
+    \begin{center}
+        \includegraphics[width=0.85\textwidth]{figure/critical_class_metrics.png}
+    \end{center}
+    
+    \begin{itemize}
+        \item \textbf{No-Safety Vest类别}：安全关键类别，漏报代价极高
+        \item \textbf{基线模型优势}：在Precision、Recall和mAP上均领先
+        \item \textbf{CA注意力效果}：在该类别上有一定提升
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{模型复杂度与效率对比}
+    \begin{center}
+        \includegraphics[width=0.9\textwidth]{figure/complexity_vs_efficiency.png}
+    \end{center}
+\end{frame}
+
+\begin{frame}{安全评分综合评估}
+    \begin{center}
+        \includegraphics[width=0.85\textwidth]{figure/safety_score_comparison.png}
+    \end{center}
+    
+    \begin{block}{评分结果}
+        \begin{itemize}
+            \item \textbf{yolov5s\_}：0.7334（最高）
+            \item \textbf{yolov5s-ghost\_3\_}：0.7208（第二）
+            \item \textbf{yolov5s-ghost\_2\_}：0.7100（第三）
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+% 第五部分：深入分析
+\section{深入分析与讨论}
+
+\begin{frame}{意外发现：改进策略的局限性}
+    \begin{alertblock}{核心发现}
+        理论上先进的改进策略在特定任务上可能适得其反
+    \end{alertblock}
+    
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \textbf{GhostNet的双刃剑：}
+            \begin{itemize}
+                \item 参数量减少27.6\%
+                \item 但mAP下降7.0\%
+                \item 特征压缩损失关键信息
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{CA注意力的开销：}
+            \begin{itemize}
+                \item 推理时间增加72.7\%
+                \item FPS下降41.9\%
+                \item 精度提升微乎其微
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    
+    \vspace{0.5cm}
+    \textbf{组合效应：}三个模块同时使用时，性能下降18.3\%（负协同效应）
+\end{frame}
+
+\begin{frame}{深层原因分析}
+    \begin{enumerate}
+        \item \textbf{任务特异性}
+        \begin{itemize}
+            \item 反光衣检测需要精细纹理特征
+            \item GhostNet的特征压缩可能丢失关键信息
+            \item 通用改进策略未必适合特定垂直领域
+        \end{itemize}
+        
+        \item \textbf{数据集规模限制}
+        \begin{itemize}
+            \item 相对较小的数据集（1,330张）
+            \item 复杂模型容易过拟合
+            \item 简单模型反而更稳定
+        \end{itemize}
+        
+        \item \textbf{模块间干扰}
+        \begin{itemize}
+            \item 不同改进策略可能相互冲突
+            \item 特征分布不匹配
+            \item 训练难度增加
+        \end{itemize}
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{方法论贡献}
+    \begin{block}{科学价值}
+        \textbf{"负面"结果的重要意义}：证明了盲目追求新技术的风险
+    \end{block}
+    
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \textbf{评估框架：}
+            \begin{itemize}
+                \item 任务驱动的评价体系
+                \item 安全评分概念
+                \item 系统性消融实验
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{实践指导：}
+            \begin{itemize}
+                \item 模型选型科学依据
+                \item 避免过度工程化
+                \item 重视基线模型价值
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    
+    \begin{alertblock}{核心启示}
+        在安全关键应用中，稳定可靠的基线模型可能比复杂的改进模型更有价值
+    \end{alertblock}
+\end{frame}
+
+% 第六部分：总结与展望
+\section{总结与展望}
+
+\begin{frame}{主要贡献与结论}
+    \begin{enumerate}
+        \item \textbf{系统性评估}
+        \begin{itemize}
+            \item 完成了GhostNet、CA注意力、WIoU损失的全面评估
+            \item 揭示了改进策略在特定任务上的局限性
+        \end{itemize}
+        
+        \item \textbf{方法论创新}
+        \begin{itemize}
+            \item 提出了安全评分评价体系
+            \item 建立了任务驱动的模型评估框架
+        \end{itemize}
+        
+        \item \textbf{实践价值}
+        \begin{itemize}
+            \item 为工业安全检测提供了模型选型指导
+            \item 证明了基线模型在特定场景下的优势
+        \end{itemize}
+    \end{enumerate}
+    
+    \begin{block}{最终推荐}
+        对于反光衣检测任务，推荐使用原始YOLOv5s模型
+    \end{block}
+\end{frame}
+
+\begin{frame}{未来研究方向}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \textbf{技术改进：}
+            \begin{itemize}
+                \item 探索其他轻量化方案
+                \item 设计任务特定的损失函数
+                \item 优化后处理策略
+                \item 多模态信息融合
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textbf{应用拓展：}
+            \begin{itemize}
+                \item 边缘计算部署优化
+                \item 其他安全装备检测
+                \item 持续学习机制
+                \item 可解释性增强
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    
+    \vspace{0.5cm}
+    \begin{block}{长远目标}
+        构建通用的工业安全智能监控平台，实现多场景、多任务的统一检测
+    \end{block}
+\end{frame}
+
+\begin{frame}
+    \begin{center}
+        \Huge 谢谢聆听！
+
+        \vspace{1cm}
+        \Large 欢迎提问与讨论
+    \end{center}
+\end{frame}
+
+\end{document}
