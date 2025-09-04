@@ -94,10 +94,10 @@ def plot_signal_examples(dataset, mods, output_dir=None, show_plots=True):
         plt.savefig(filepath, dpi=300)
         print(f"Saved time domain plot to: {filepath}")
         
-    if show_plots:
-        plt.show()
-    else:
-        plt.close()
+    # if show_plots:
+    #     plt.show()
+    # else:
+    #     plt.close()
     
     # Create IQ constellation plots
     plt.figure(figsize=(15, 10))
@@ -127,10 +127,10 @@ def plot_signal_examples(dataset, mods, output_dir=None, show_plots=True):
         plt.savefig(filepath, dpi=300)
         print(f"Saved constellation plot to: {filepath}")
         
-    if show_plots:
-        plt.show()
-    else:
-        plt.close()
+    # if show_plots:
+    #     plt.show()
+    # else:
+    #     plt.close()
 
 if __name__ == "__main__":
     # Folder for outputs

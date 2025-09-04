@@ -477,8 +477,8 @@ Examples:
                         help='Enable data augmentation for training data (11 rotations, 30 deg increments)')
     
     parser.add_argument('--denoising_method', type=str, default='gpr',
-                        choices=['gpr', 'wavelet', 'ddae', 'none'],
-                        help='Denoising method to apply to the signals (gpr, wavelet, ddae, none)')
+                        choices=['gpr', 'wavelet', 'ddae', 'none', 'efficient_gpr', 'efficient_gpr_per_sample'],
+                        help='Denoising method: gpr, wavelet, ddae, none, efficient_gpr (SNR-grouped), or efficient_gpr_per_sample (eigen-optimized)')
     
     parser.add_argument('--ddae_model_path', type=str, default='model_weight_saved/ddae_model.keras',
                         help='Path to the trained Denoising Autoencoder model (.keras file). Assumes path from project root.')

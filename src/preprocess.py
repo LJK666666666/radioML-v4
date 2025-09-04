@@ -9,6 +9,28 @@ from scipy.stats import norm
 from keras.utils import to_categorical # Changed from tensorflow.keras
 from keras.models import load_model # Changed from tensorflow.keras
 import pywt
+import sys
+import importlib
+
+
+def _run_efficient_gpr_denoising(dataset_dict, mode: str):
+    """
+    调用 gpr.optimized_gpr 的高效GPR去噪。
+    mode: 'per-key' 或 'per-sample'
+    返回 denoised_dataset (同结构 dict) 与 total_time。
+    """
+    # 确保可以导入到项目根目录下的 gpr 包
+    root_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), '..'))
+    if root_dir not in sys.path:
+        sys.path.append(root_dir)
+    optimized_gpr = importlib.import_module('gpr.optimized_gpr')
+    denoised_dataset, total_time = optimized_gpr.apply_gpr_denoising_efficient(
+        dataset_dict,
+        noise_mode='per-key' if mode == 'per-key' else 'per-sample',
+        batch_limit=4096,
+    )
+    print(f"Efficient GPR ({mode}) finished in {total_time:.2f}s")
+    return denoised_dataset, total_time
 
 
 # Helper functions for saving/loading denoised datasets
@@ -453,10 +475,10 @@ def prepare_data_by_snr(dataset, test_size=0.2, validation_split=0.2, specific_s
                 y_all_list.append(np.ones(len(dataset[key])) * mod_to_index[mod])
                 snr_values_all_list.append(np.ones(len(dataset[key])) * snr_val)
     
-    # Convert lists to numpy arrays
-    X_all = np.vstack(X_all_list)
-    y_all = np.hstack(y_all_list).astype(int)
-    snr_values_all = np.hstack(snr_values_all_list)
+    # Convert lists to numpy arrays (may be overridden by efficient modes below)
+    X_all = np.vstack(X_all_list) if X_all_list else np.empty((0, 2, 0))
+    y_all = np.hstack(y_all_list).astype(int) if y_all_list else np.array([], dtype=int)
+    snr_values_all = np.hstack(snr_values_all_list) if snr_values_all_list else np.array([])
 
     # Check for cached denoised data and apply denoising if needed
     if denoising_method.lower() != 'none':
@@ -475,53 +497,68 @@ def prepare_data_by_snr(dataset, test_size=0.2, validation_split=0.2, specific_s
             if X_all.shape[0] == 0:
                 print("X_all is empty. Skipping denoising.")
             else:
-                # Apply denoising (original processing code)
-                total_samples = X_all.shape[0]
-                progress_step = max(1, total_samples // 100)  # Calculate 1% step
-                print(f"Total samples to process: {total_samples}")
-                
-                for i in range(X_all.shape[0]):
-                    # Progress display every 1% of data
-                    if i % progress_step == 0 or i == total_samples - 1:
-                        progress_percent = (i + 1) / total_samples * 100
-                        print(f"Processing sample {i+1}/{total_samples} ({progress_percent:.1f}% complete)")
-                    
-                    current_snr = snr_values_all[i]
-                    i_component = X_all[i, 0, :]
-                    q_component = X_all[i, 1, :]
-                    complex_signal = i_component + 1j * q_component
-                    
-                    denoised_signal = complex_signal # Default to original if method unknown or fails
+                method = denoising_method.lower()
+                if method in ('efficient_gpr', 'efficient_gpr_per_sample'):
+                    # 过滤到所需 SNR 的子集再执行高效去噪
+                    filtered_dataset = {k: v for k, v in dataset.items() if (k[0] in mods and k[1] in snrs_list)}
+                    mode = 'per-key' if method == 'efficient_gpr' else 'per-sample'
+                    denoised_ds, _ = _run_efficient_gpr_denoising(filtered_dataset, mode)
 
-                    if denoising_method.lower() == 'gpr':
-                        total_power = calculate_power(i_component, q_component)
-                        noise_std = estimate_noise_std(total_power, current_snr)
-                        # TODO: Make kernel and its parameters configurable
-                        # Corrected logic: Higher length_scale for lower SNR (more smoothing for noisier signals)
-                        # length_scale_val = 5.0 if current_snr >= 0 else max(1.0, 5.0 * (1 + current_snr / 20.0))
-                        # length_scale_val = 5.0 if current_snr >= 0 else min(50.0, 5.0 - current_snr * 2.5) 
-                        # length_scale_val = 50.0
-                        # length_scale_val = 5.0
-                        length_scale_val = 5.0 if current_snr >= 0 else min(10, 5.0 - current_snr * 0.25) 
-                        denoised_signal = apply_gp_regression(complex_signal, noise_std, kernel_name='rbf', length_scale=length_scale_val)
-                    elif denoising_method.lower() == 'wavelet':
-                        # TODO: Make wavelet parameters configurable
-                        denoised_signal = apply_wavelet_denoising(complex_signal, wavelet='db4', level=2) # Using level 2 for potentially better denoising
-                    elif denoising_method.lower() == 'ddae':
-                        # Pass the model path received by prepare_data_by_snr
-                        denoised_signal = apply_ddae_denoising(complex_signal, model_path=ddae_model_path)
-                    else:
-                        if i == 0: # Print warning only once
-                            print(f"Warning: Denoising method '{denoising_method}' not recognized. Skipping denoising.")
-                        denoised_signal = complex_signal # Fallback to original signal
+                    # 按与原来相同的顺序重建 X_all/y_all/snr_values_all
+                    X_list_dn, y_list_dn, snr_list_dn = [], [], []
+                    for mod in mods:
+                        for snr_val in snrs_list:
+                            key = (mod, snr_val)
+                            if key in denoised_ds:
+                                arr = denoised_ds[key]
+                                if len(arr) == 0:
+                                    continue
+                                X_list_dn.append(arr)
+                                y_list_dn.append(np.ones(len(arr)) * mod_to_index[mod])
+                                snr_list_dn.append(np.ones(len(arr)) * snr_val)
+                    X_all = np.vstack(X_list_dn) if X_list_dn else np.empty((0, 2, 0))
+                    y_all = np.hstack(y_list_dn).astype(int) if y_list_dn else np.array([], dtype=int)
+                    snr_values_all = np.hstack(snr_list_dn) if snr_list_dn else np.array([])
 
-                    X_all[i, 0, :] = np.real(denoised_signal)
-                    X_all[i, 1, :] = np.imag(denoised_signal)
-                
-                print(f"{denoising_method} application complete.")
-                
-                # Save the denoised dataset for future use
-                save_denoised_dataset(X_all, y_all, snr_values_all, denoised_filename, denoised_cache_dir)
+                    # 缓存保存
+                    save_denoised_dataset(X_all, y_all, snr_values_all, denoised_filename, denoised_cache_dir)
+                else:
+                    # 原有逐样本处理流程（gpr/wavelet/ddae）
+                    total_samples = X_all.shape[0]
+                    progress_step = max(1, total_samples // 100)
+                    print(f"Total samples to process: {total_samples}")
+
+                    for i in range(X_all.shape[0]):
+                        if i % progress_step == 0 or i == total_samples - 1:
+                            progress_percent = (i + 1) / total_samples * 100
+                            print(f"Processing sample {i+1}/{total_samples} ({progress_percent:.1f}% complete)")
+
+                        current_snr = snr_values_all[i]
+                        i_component = X_all[i, 0, :]
+                        q_component = X_all[i, 1, :]
+                        complex_signal = i_component + 1j * q_component
+
+                        denoised_signal = complex_signal
+
+                        if method == 'gpr':
+                            total_power = calculate_power(i_component, q_component)
+                            noise_std = estimate_noise_std(total_power, current_snr)
+                            length_scale_val = 5.0 if current_snr >= 0 else min(10, 5.0 - current_snr * 0.25)
+                            denoised_signal = apply_gp_regression(complex_signal, noise_std, kernel_name='rbf', length_scale=length_scale_val)
+                        elif method == 'wavelet':
+                            denoised_signal = apply_wavelet_denoising(complex_signal, wavelet='db4', level=2)
+                        elif method == 'ddae':
+                            denoised_signal = apply_ddae_denoising(complex_signal, model_path=ddae_model_path)
+                        else:
+                            if i == 0:
+                                print(f"Warning: Denoising method '{denoising_method}' not recognized. Skipping denoising.")
+                            denoised_signal = complex_signal
+
+                        X_all[i, 0, :] = np.real(denoised_signal)
+                        X_all[i, 1, :] = np.imag(denoised_signal)
+
+                    print(f"{denoising_method} application complete.")
+                    save_denoised_dataset(X_all, y_all, snr_values_all, denoised_filename, denoised_cache_dir)
     else:
         print("No denoising method applied.")
         
@@ -693,45 +730,70 @@ def prepare_data_by_snr_stratified(dataset, test_size=0.2, validation_split=0.1,
             if X_all.shape[0] == 0:
                 print("X_all is empty. Skipping denoising.")
             else:
-                # Apply denoising (original processing code)
-                total_samples = X_all.shape[0]
-                progress_step = max(1, total_samples // 100)  # Calculate 1% step
-                print(f"Total samples to process: {total_samples}")
-                
-                for i in range(X_all.shape[0]):
-                    # Progress display every 1% of data
-                    if i % progress_step == 0 or i == total_samples - 1:
-                        progress_percent = (i + 1) / total_samples * 100
-                        print(f"Processing sample {i+1}/{total_samples} ({progress_percent:.1f}% complete)")
-                    
-                    current_snr = snr_values_all[i]
-                    i_component = X_all[i, 0, :]
-                    q_component = X_all[i, 1, :]
-                    complex_signal = i_component + 1j * q_component
-                    
-                    denoised_signal = complex_signal # Default to original if method unknown or fails
+                method = denoising_method.lower()
+                if method in ('efficient_gpr', 'efficient_gpr_per_sample'):
+                    # 仅保留需要的 SNR 键进行高效去噪
+                    filtered_dataset = {k: v for k, v in dataset.items() if (k[0] in mods and k[1] in snrs_list)}
+                    mode = 'per-key' if method == 'efficient_gpr' else 'per-sample'
+                    denoised_ds, _ = _run_efficient_gpr_denoising(filtered_dataset, mode)
 
-                    if denoising_method.lower() == 'gpr':
-                        total_power = calculate_power(i_component, q_component)
-                        noise_std = estimate_noise_std(total_power, current_snr)
-                        length_scale_val = 5.0 if current_snr >= 0 else min(10, 5.0 - current_snr * 0.25) 
-                        denoised_signal = apply_gp_regression(complex_signal, noise_std, kernel_name='rbf', length_scale=length_scale_val)
-                    elif denoising_method.lower() == 'wavelet':
-                        denoised_signal = apply_wavelet_denoising(complex_signal, wavelet='db4', level=2)
-                    elif denoising_method.lower() == 'ddae':
-                        denoised_signal = apply_ddae_denoising(complex_signal, model_path=ddae_model_path)
-                    else:
-                        if i == 0: # Print warning only once
-                            print(f"Warning: Denoising method '{denoising_method}' not recognized. Skipping denoising.")
-                        denoised_signal = complex_signal # Fallback to original signal
+                    # 以相同次序重建数组与复合标签
+                    X_list_dn, y_list_dn, snr_list_dn, composite_labels_list = [], [], [], []
+                    for mod in mods:
+                        for snr_val in snrs_list:
+                            key = (mod, snr_val)
+                            if key in denoised_ds:
+                                arr = denoised_ds[key]
+                                if len(arr) == 0:
+                                    continue
+                                X_list_dn.append(arr)
+                                y_list_dn.append(np.ones(len(arr)) * mod_to_index[mod])
+                                snr_list_dn.append(np.ones(len(arr)) * snr_val)
+                                composite_labels_list.extend([f"{mod}_{snr_val}"] * len(arr))
+                    X_all = np.vstack(X_list_dn) if X_list_dn else np.empty((0, 2, 0))
+                    y_all = np.hstack(y_list_dn).astype(int) if y_list_dn else np.array([], dtype=int)
+                    snr_values_all = np.hstack(snr_list_dn) if snr_list_dn else np.array([])
+                    composite_labels = np.array(composite_labels_list)
 
-                    X_all[i, 0, :] = np.real(denoised_signal)
-                    X_all[i, 1, :] = np.imag(denoised_signal)
-                
-                print(f"{denoising_method} application complete.")
-                
-                # Save the denoised dataset for future use
-                save_denoised_dataset(X_all, y_all, snr_values_all, denoised_filename, denoised_cache_dir)
+                    # 缓存保存
+                    save_denoised_dataset(X_all, y_all, snr_values_all, denoised_filename, denoised_cache_dir)
+                else:
+                    # 原有逐样本处理流程
+                    total_samples = X_all.shape[0]
+                    progress_step = max(1, total_samples // 100)
+                    print(f"Total samples to process: {total_samples}")
+
+                    for i in range(X_all.shape[0]):
+                        if i % progress_step == 0 or i == total_samples - 1:
+                            progress_percent = (i + 1) / total_samples * 100
+                            print(f"Processing sample {i+1}/{total_samples} ({progress_percent:.1f}% complete)")
+
+                        current_snr = snr_values_all[i]
+                        i_component = X_all[i, 0, :]
+                        q_component = X_all[i, 1, :]
+                        complex_signal = i_component + 1j * q_component
+
+                        denoised_signal = complex_signal
+
+                        if method == 'gpr':
+                            total_power = calculate_power(i_component, q_component)
+                            noise_std = estimate_noise_std(total_power, current_snr)
+                            length_scale_val = 5.0 if current_snr >= 0 else min(10, 5.0 - current_snr * 0.25)
+                            denoised_signal = apply_gp_regression(complex_signal, noise_std, kernel_name='rbf', length_scale=length_scale_val)
+                        elif method == 'wavelet':
+                            denoised_signal = apply_wavelet_denoising(complex_signal, wavelet='db4', level=2)
+                        elif method == 'ddae':
+                            denoised_signal = apply_ddae_denoising(complex_signal, model_path=ddae_model_path)
+                        else:
+                            if i == 0:
+                                print(f"Warning: Denoising method '{denoising_method}' not recognized. Skipping denoising.")
+                            denoised_signal = complex_signal
+
+                        X_all[i, 0, :] = np.real(denoised_signal)
+                        X_all[i, 1, :] = np.imag(denoised_signal)
+
+                    print(f"{denoising_method} application complete.")
+                    save_denoised_dataset(X_all, y_all, snr_values_all, denoised_filename, denoised_cache_dir)
     else:
         print("No denoising method applied.")
         
