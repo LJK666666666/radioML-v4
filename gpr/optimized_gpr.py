@@ -9,7 +9,8 @@ import argparse
 import os
 import pickle
 import time
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List, DefaultDict
+from collections import defaultdict
 
 import numpy as np
 
@@ -96,6 +97,37 @@ def batched_gp_denoise_same_inputs(
     return mean
 
 
+def batched_gp_denoise_eig(
+        eigvals: np.ndarray,
+        eigvecs: np.ndarray,
+        Y: np.ndarray,
+        noise_vars_per_col: np.ndarray,
+        jitter: float = 1e-10,
+) -> np.ndarray:
+        """
+        使用 K 的特征分解进行批量后验均值计算：
+            mean = U diag(Λ/(Λ + σ_j^2)) U^T Y[:, j]
+        其中 K = U diag(Λ) U^T，且每一列 j 使用各自的噪声方差 σ_j^2。
+
+        参数：
+            eigvals: (n,) K 的特征值 Λ
+            eigvecs: (n,n) K 的特征向量 U
+            Y: (n,m) 多列目标
+            noise_vars_per_col: (m,) 每一列对应的噪声方差 σ_j^2
+        返回：
+            (n,m) 后验均值
+        """
+        # 变换到谱域
+        U_T_Y = eigvecs.T @ Y  # (n,m)
+        # 计算缩放系数 Λ/(Λ+σ_j^2)
+        denom = eigvals[:, None] + noise_vars_per_col[None, :] + jitter
+        scale = eigvals[:, None] / denom
+        # 谱域缩放再变换回时域
+        scaled = scale * U_T_Y
+        mean = eigvecs @ scaled
+        return mean
+
+
 # ----------------------------
 # 主流程（分组 + 批处理）
 # ----------------------------
@@ -108,6 +140,10 @@ def apply_gpr_denoising_efficient(
     """
     返回 (denoised_dataset, total_time)
     dataset[key] 形状: (num_samples, 2, n)
+
+    变更：
+      - per-key 模式改为按 SNR 分组（不使用调制类型信息）以避免信息泄露；
+      - per-sample 模式使用 K 的一次性特征分解，并用谱域缩放 Λ/(Λ+σ²) 批量计算。
     """
     assert noise_mode in {'per-key', 'per-sample'}
 
@@ -119,64 +155,126 @@ def apply_gpr_denoising_efficient(
 
     print(f'开始高效GPR去噪，总样本数: {total_samples}')
 
-    for key, samples in dataset.items():
-        mod, snr_db = key
-        num = len(samples)
-        if num == 0:
-            denoised_dataset[key] = samples
-            continue
+    # 基本假设：所有样本时间长度一致
+    any_key = next(iter(dataset))
+    default_n = dataset[any_key].shape[-1] if len(dataset[any_key]) > 0 else None
 
-        n = samples.shape[-1]
-        ls = length_scale_from_snr(float(snr_db))
-        K = rbf_kernel_same_grid(n, ls)
+    if noise_mode == 'per-key':
+        # 仅按 SNR 分组，避免使用调制信息
+        snr_groups: DefaultDict[int, List[Tuple[Tuple[str, int], np.ndarray]]] = defaultdict(list)
+        for key, samples in dataset.items():
+            _, snr_db = key
+            snr_groups[int(snr_db)].append((key, samples))
 
-        # 估计噪声方差
-        if noise_mode == 'per-key':
-            # 使用该组样本的功率的中位数进行估计，兼顾稳健性与速度
-            powers = np.mean(samples[:, 0, :] ** 2 + samples[:, 1, :] ** 2, axis=1)
-            median_power = float(np.median(powers))
+        for snr_db, items in sorted(snr_groups.items(), key=lambda x: x[0]):
+            # 汇总该 SNR 下所有样本
+            samples_list = [arr for _, arr in items if len(arr) > 0]
+            total_num = sum(len(arr) for arr in samples_list)
+            if total_num == 0:
+                # 该 SNR 组全为空
+                for key, arr in items:
+                    denoised_dataset[key] = arr
+                continue
+
+            n_candidates = [arr.shape[-1] for arr in samples_list]
+            n = n_candidates[0] if n_candidates else (default_n or 0)
+            if any(x != n for x in n_candidates):
+                raise ValueError('不支持同一 SNR 组内存在不同的时间长度 n')
+
+            ls = length_scale_from_snr(float(snr_db))
+            K = rbf_kernel_same_grid(n, ls)
+
+            # 使用该 SNR 组所有样本的功率中位数估计噪声，避免调制信息泄露
+            all_powers = []
+            for _, arr in items:
+                if len(arr) == 0:
+                    continue
+                p = np.mean(arr[:, 0, :] ** 2 + arr[:, 1, :] ** 2, axis=1)
+                all_powers.append(p)
+            all_powers = np.concatenate(all_powers, axis=0)
+            median_power = float(np.median(all_powers))
             sigma = estimate_noise_std(median_power, float(snr_db))
             noise_var = sigma ** 2
-            # 全组一次（或分块）求解
-            # 将实部与虚部拼为列：Y = [y1_real, y1_imag, y2_real, y2_imag, ...]
-            Y = np.empty((n, num * 2), dtype=np.float64)
-            Y[:, 0::2] = samples[:, 0, :].T  # 实部列
-            Y[:, 1::2] = samples[:, 1, :].T  # 虚部列
 
-            # 分块以控制内存峰值
+            # 将该 SNR 组的所有样本拼接做一次（可分块）
+            # 构建列拼接 Y
+            Y = np.empty((n, total_num * 2), dtype=np.float64)
+            offset = 0
+            for _, arr in items:
+                m = len(arr)
+                if m == 0:
+                    continue
+                Y[:, 2*offset:2*(offset+m):2] = arr[:, 0, :].T
+                Y[:, 2*offset+1:2*(offset+m):2] = arr[:, 1, :].T
+                offset += m
+
+            # 分块求解
             denoised_cols = np.empty_like(Y)
             for start in range(0, Y.shape[1], batch_limit):
                 end = min(start + batch_limit, Y.shape[1])
                 denoised_cols[:, start:end] = batched_gp_denoise_same_inputs(K, Y[:, start:end], noise_var)
 
-            # 还原为样本数组
+            # 拆回各个 key
+            offset = 0
+            for key, arr in items:
+                m = len(arr)
+                if m == 0:
+                    denoised_dataset[key] = arr
+                    continue
+                denoised = np.empty_like(arr)
+                cols_slice = slice(2*offset, 2*(offset+m))
+                block = denoised_cols[:, cols_slice]
+                denoised[:, 0, :] = block[:, 0::2].T
+                denoised[:, 1, :] = block[:, 1::2].T
+                denoised_dataset[key] = denoised
+                offset += m
+
+            processed += total_num
+            elapsed = time.time() - t0
+            print(f'完成 SNR={snr_db} dB: {total_num} 个样本（跨多调制），用时累计: {elapsed:.1f}s')
+
+    else:
+        # per-sample：对每个 key 内做一次 K 的特征分解，然后对所有样本按 σ_i^2 做谱域缩放
+        for key, samples in dataset.items():
+            mod, snr_db = key
+            num = len(samples)
+            if num == 0:
+                denoised_dataset[key] = samples
+                continue
+
+            n = samples.shape[-1]
+            ls = length_scale_from_snr(float(snr_db))
+            K = rbf_kernel_same_grid(n, ls)
+            # 特征分解（对称 PSD）
+            # 为稳健性，可对特征值做非负裁剪
+            eigvals, eigvecs = np.linalg.eigh(K)
+            eigvals = np.maximum(eigvals, 0.0)
+
+            # 构建 Y 与每列对应的噪声方差（每个样本的两列 I/Q 共享同一 σ^2）
+            Y = np.empty((n, num * 2), dtype=np.float64)
+            Y[:, 0::2] = samples[:, 0, :].T
+            Y[:, 1::2] = samples[:, 1, :].T
+
+            # 逐样本估计噪声 -> 展开为列向量（重复两次给 I/Q）
+            powers = np.mean(samples[:, 0, :] ** 2 + samples[:, 1, :] ** 2, axis=1)
+            sigmas = np.array([estimate_noise_std(float(p), float(snr_db)) for p in powers], dtype=np.float64)
+            sigma2_cols = np.repeat(sigmas**2, 2)  # (2*num,)
+
+            # 可分块以控制内存（一般 n=128，列数不大，此处一次完成）
+            mu_cols = batched_gp_denoise_eig(eigvals, eigvecs, Y, sigma2_cols)
+
             denoised = np.empty_like(samples)
-            denoised[:, 0, :] = denoised_cols[:, 0::2].T
-            denoised[:, 1, :] = denoised_cols[:, 1::2].T
+            denoised[:, 0, :] = mu_cols[:, 0::2].T
+            denoised[:, 1, :] = mu_cols[:, 1::2].T
 
-        else:  # per-sample: 与 origin 更一致，但要为每个样本单独分解 Ky
-            denoised = np.empty_like(samples)
-            # 仍然可以小批量进行（每个样本噪声不同 -> 不能共享分解，但可共享 K_no_noise）
-            for i, sample in enumerate(samples):
-                i_comp = sample[0, :]
-                q_comp = sample[1, :]
-                power = calculate_power(i_comp, q_comp)
-                sigma = estimate_noise_std(power, float(snr_db))
-                noise_var = sigma ** 2
-                Y = np.stack([i_comp, q_comp], axis=1).astype(np.float64)  # (n,2)
-                mu = batched_gp_denoise_same_inputs(K, Y, noise_var)      # (n,2)
-                denoised[i, 0, :] = mu[:, 0]
-                denoised[i, 1, :] = mu[:, 1]
+            denoised_dataset[key] = denoised
+            processed += num
+            if processed % 200 == 0:
+                elapsed = time.time() - t0
+                print(f'进度: {processed}/{total_samples} ({processed/total_samples*100:.1f}%), 用时: {elapsed:.1f}s')
 
-                processed += 1
-                if processed % 200 == 0:
-                    elapsed = time.time() - t0
-                    print(f'进度: {processed}/{total_samples} ({processed/total_samples*100:.1f}%), 用时: {elapsed:.1f}s')
-
-        denoised_dataset[key] = denoised
-        processed += len(samples) if noise_mode == 'per-key' else 0
-        elapsed = time.time() - t0
-        print(f'完成 {mod}@{snr_db}dB: {len(samples)} 个样本，用时累计: {elapsed:.1f}s')
+            elapsed = time.time() - t0
+            print(f'完成 {mod}@{snr_db}dB: {num} 个样本（谱域缩放优化），用时累计: {elapsed:.1f}s')
 
     total_time = time.time() - t0
     print(f'高效GPR去噪完成，总用时: {total_time:.2f} 秒')
