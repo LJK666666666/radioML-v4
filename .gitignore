@@ -1,0 +1,43 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Data files and datasets
+data/
+denoised_datasets/
+*.pkl
+*.h5
+*.hdf5
+
+# Model weights and large files
+model_weight_saved/
+# *.keras
+*.weights
+*.pb
+
+
+# ULCNN/
+ULCNN/RML2016.10a_dict.pkl
+ULCNN/train/
+ULCNN/train_RML/
+
+
+radioML-v3/
+backup/
+done/
+gpr/
+guide/
+paper/
+presentation/
+
+.claude/
+.kiro/
