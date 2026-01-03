@@ -1,5 +1,7 @@
 # RadioML
 
+主要贡献为gpr去噪，使用“--denoising_method efficient_gpr_per_sample”启用。“per_sample”表示使用每个样本自身数据而非所有样本均值数据，实际上两者速度几乎一样，故只保留了当前方法。
+
 This repository contains machine learning models for radio modulation classification.
 
 ## Usage
