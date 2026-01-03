@@ -5,6 +5,35 @@ import matplotlib.pyplot as plt
 # 设置日志目录
 logs_dir = 'output/models/logs'
 
+# ========== 模型显示控制 ==========
+# 设置为1显示该模型，设置为0不显示
+# model_display_config = {
+#     'CGDNN': 0,
+#     'ComplexCNN': 1,
+#     'Complex-ResNet': 1,
+#     'Complex-ResNet-mini': 0,
+#     'MCLDNN': 1,
+#     'MCNET': 0,
+#     'PET': 1,
+#     'ResNet': 1,
+#     'ULCNN': 0
+# }
+model_display_config = {
+    'CGDNN': 0,
+    'ComplexCNN': 1,
+    'Complex-ResNet': 1,
+    'Complex-ResNet-mini': 0,
+    'MCLDNN': 1,
+    'MCNET': 0,
+    'PET': 1,
+    'ResNet': 1,
+    'ULCNN': 0
+}
+
+# 设置epoch显示范围（None表示显示全部）
+max_epoch = 50
+# =================================
+
 # 存储所有模型的训练日志数据
 models_data = {}
 
@@ -72,27 +101,65 @@ for model_name, df in models_data.items():
 # 创建图形
 plt.figure(figsize=(14, 8))
 
-# 定义所有基础模型和绘制顺序
+# 定义所有基础模型和绘制顺序（根据配置过滤）
 base_models = ['CGDNN', 'ComplexCNN', 'Complex-ResNet', 'Complex-ResNet-mini', 'MCLDNN', 'MCNET', 'PET', 'ResNet', 'ULCNN']
 all_order = []
 for base in base_models:
-    all_order.extend([
-        base,
-        f'{base}+Aug',
-        f'{base}+GPR',
-        f'{base}+Aug+GPR'
-    ])
+    # 只添加配置中设置为1的模型
+    if model_display_config.get(base, 0) == 1:
+        all_order.extend([
+            # base,
+            f'{base}+Aug',
+            # f'{base}+GPR',
+            f'{base}+Aug+GPR'
+        ])
+
+# 定义每个基础模型的marker样式
+markers = {
+    'CGDNN': 'o',          # 圆形
+    'ComplexCNN': 's',     # 方形
+    'Complex-ResNet': '^', # 上三角
+    'Complex-ResNet-mini': 'v', # 下三角
+    'MCLDNN': 'D',         # 菱形
+    'MCNET': 'p',          # 五边形
+    'PET': '*',            # 星形
+    'ResNet': 'X',         # X形
+    'ULCNN': 'h'           # 六边形
+}
 
 # 按顺序绘制折线
 for model_name in all_order:
     if model_name in formatted_models_data:
         df = formatted_models_data[model_name]
-        plt.plot(df['epoch'], df['val_accuracy'], label=model_name, linewidth=2, alpha=0.7)
+
+        # 过滤epoch数据，只显示到max_epoch
+        if max_epoch is not None:
+            df = df[df['epoch'] <= max_epoch]
+
+        # 确定基础模型名称
+        base_name = model_name.replace('+GPR', '').replace('+Aug', '')
+        marker = markers.get(base_name, 'o')
+
+        # 判断是否为基础模型（使用虚线）或+GPR模型（使用实线）
+        if '+GPR' in model_name:
+            linestyle = '-'  # 实线
+        else:
+            linestyle = '--'  # 虚线
+
+        plt.plot(df['epoch'], df['val_accuracy'],
+                label=model_name,
+                linewidth=2,
+                alpha=0.7,
+                marker=marker,
+                markersize=6,
+                markevery=5,  # 每5个点显示一个marker
+                linestyle=linestyle)
 
 # 设置图形属性
 plt.xlabel('Epoch', fontsize=12)
 plt.ylabel('Validation Accuracy', fontsize=12)
-plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+# plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+plt.legend(loc='lower right', fontsize=8)
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
 
