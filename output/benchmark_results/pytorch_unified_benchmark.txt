@@ -1,0 +1,12 @@
+Device: cuda (NVIDIA GeForce RTX 5070 Ti Laptop GPU)
+batch_size=400, num_samples=22000, frame_length=128, num_runs=3
+
+Model          Parameters    ms/sample        std
+----------------------------------------------
+IQFormer          355,049       0.0387     0.0009
+AMC-Net           466,144       0.0281     0.0014
+FEA-T             169,867       0.0197     0.0012
+MCLDNN            406,199       0.0281     0.0010
+PETCGDNN           71,871       0.0104     0.0001
+ULCNN               9,463       0.0158     0.0006
+GPR Denoise            --       0.0125

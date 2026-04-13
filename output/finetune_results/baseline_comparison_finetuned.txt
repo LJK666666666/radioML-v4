@@ -1,0 +1,10 @@
+Baseline Denoising Fair Comparison (IQFormer on RML2016.10a)
+MA and Wavelet: finetuned from raw-data weights
+GPR: trained from scratch on GPR-denoised data
+
+Method                                Accuracy
+---------------------------------------------
+None (baseline)                         63.08%
+Moving Average (w=5, finetuned)         63.51%
+Wavelet (db4, L=2, finetuned)           63.20%
+GPR (proposed, full training)           67.48%

@@ -1,0 +1,14 @@
+Model Performance Benchmark Summary
+batch_size=256, num_samples=22000, num_runs=1
+input_shape=(2, 128), num_classes=11
+GPU: NVIDIA GeForce RTX 5070 Ti Laptop GPU
+
+Model          Parameters        FLOPs   Per-Sample(ms)
+----------------------------------------------------
+IQFormer          355,049 11,544,076,288           0.0321
+AMC-Net           467,112      665,402           1.3503
+FEA-T             169,867 1,703,337,984           0.0257
+MCLDNN            405,175      810,350           1.5733
+PETCGDNN           71,871          256           0.4140
+ULCNN               9,751       18,804           0.1085
+GPR Denoise            --           --           0.0125
